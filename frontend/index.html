@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart Health — District Health Intelligence Platform</title>
+  <meta name="description" content="Real-time district health monitoring dashboard with risk analytics, transfer recommendations, and anomaly detection." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+</head>
+<body>
+  <!-- ========== HEADER ========== -->
+  <header class="header" id="header">
+    <div class="header__brand">
+      <div class="header__logo">
+        <svg class="header__heartbeat" viewBox="0 0 32 32" width="36" height="36" fill="none">
+          <path d="M16 28s-11-7.2-11-14.5C5 8.9 8.4 5.5 12 5.5c2.2 0 3.7 1.2 4 1.5.3-.3 1.8-1.5 4-1.5 3.6 0 7 3.4 7 8C27 20.8 16 28 16 28z" fill="url(#hg)" />
+          <polyline points="4,18 10,18 12,12 15,24 18,14 20,18 28,18" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none" class="ecg-line" />
+          <defs><linearGradient id="hg" x1="5" y1="5" x2="27" y2="28"><stop stop-color="#ef4444"/><stop offset="1" stop-color="#f59e0b"/></linearGradient></defs>
+        </svg>
+        <div>
+          <h1 class="header__title">Smart Health</h1>
+          <p class="header__subtitle">District Health Intelligence Platform</p>
+        </div>
+      </div>
+      <div class="header__right">
+        <div class="header__clock" id="header-clock"></div>
+        <div class="header__actions">
+          <button class="btn btn--accent" id="btn-scan-anomalies" onclick="Actions.scanAnomalies()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            Scan Anomalies
+          </button>
+          <button class="btn btn--cyan" id="btn-analyze-adequacy" onclick="Actions.analyzeAdequacy()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+            Analyze Adequacy
+          </button>
+          <button class="btn btn--purple" id="btn-retrain" onclick="Actions.retrainModels()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            Retrain Models
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="main" id="main">
+    <!-- ========== OVERVIEW CARDS ========== -->
+    <section class="overview" id="overview-section" aria-label="Overview statistics">
+      <div class="overview__card" id="ov-centres">
+        <div class="overview__icon overview__icon--blue">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        </div>
+        <div class="overview__data">
+          <span class="overview__value skeleton-text" id="ov-centres-val">—</span>
+          <span class="overview__label">Total Centres</span>
+        </div>
+      </div>
+      <div class="overview__card" id="ov-reliability">
+        <div class="overview__icon overview__icon--cyan">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <div class="overview__data">
+          <span class="overview__value skeleton-text" id="ov-reliability-val">—</span>
+          <span class="overview__label">Avg Reliability</span>
+        </div>
+      </div>
+      <div class="overview__card" id="ov-adequacy">
+        <div class="overview__icon overview__icon--green">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </div>
+        <div class="overview__data">
+          <span class="overview__value skeleton-text" id="ov-adequacy-val">—</span>
+          <span class="overview__label">Avg Adequacy</span>
+        </div>
+      </div>
+      <div class="overview__card" id="ov-alerts">
+        <div class="overview__icon overview__icon--yellow">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+        <div class="overview__data">
+          <span class="overview__value skeleton-text" id="ov-alerts-val">—</span>
+          <span class="overview__label">Active Alerts</span>
+        </div>
+      </div>
+      <div class="overview__card" id="ov-transfers">
+        <div class="overview__icon overview__icon--purple">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>
+        </div>
+        <div class="overview__data">
+          <span class="overview__value skeleton-text" id="ov-transfers-val">—</span>
+          <span class="overview__label">Pending Transfers</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== MAP VIEW ========== -->
+    <section class="panel panel--map" id="map-panel" style="margin-bottom: 24px; padding: 18px;">
+      <div class="panel__header" style="margin-bottom: 12px;">
+        <h2 class="panel__title">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 6px;"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg>
+          District Resource & Redistribution Map
+        </h2>
+        <span class="badge badge--info">Live Tracker</span>
+      </div>
+      <div id="leaflet-map" style="height: 380px; border-radius: 12px; border: 1px solid var(--border-glass); z-index: 10;"></div>
+    </section>
+
+    <!-- ========== CENTRE GRID + ALERTS ========== -->
+    <section class="split-section" id="split-section">
+      <!-- LEFT: Centre Risk Grid -->
+      <div class="panel panel--centres" id="centres-panel">
+        <div class="panel__header">
+          <h2 class="panel__title">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            Centre Risk Grid
+          </h2>
+          <span class="badge badge--info" id="centre-count-badge">0 centres</span>
+        </div>
+        <div class="centres-grid" id="centres-grid">
+          <!-- Skeleton loaders -->
+          <div class="centre-card skeleton-card"></div>
+          <div class="centre-card skeleton-card"></div>
+          <div class="centre-card skeleton-card"></div>
+          <div class="centre-card skeleton-card"></div>
+          <div class="centre-card skeleton-card"></div>
+          <div class="centre-card skeleton-card"></div>
+        </div>
+      </div>
+
+      <!-- RIGHT: Alerts Feed -->
+      <div class="panel panel--alerts" id="alerts-panel">
+        <div class="panel__header">
+          <h2 class="panel__title">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+            Active Alerts
+          </h2>
+          <span class="badge badge--warning" id="alert-count-badge">0</span>
+        </div>
+        <div class="alerts-feed" id="alerts-feed">
+          <div class="alert-skeleton skeleton-card"></div>
+          <div class="alert-skeleton skeleton-card"></div>
+          <div class="alert-skeleton skeleton-card"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== BED OCCUPANCY MONITOR ========== -->
+    <section class="panel panel--beds" id="beds-section" style="margin-bottom: 24px; padding: 18px;">
+      <div class="panel__header" style="margin-bottom: 16px;">
+        <h2 class="panel__title">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 6px;"><path d="M2 4v16M2 8h18M2 14h18M22 4v16M2 18h20"/></svg>
+          District Bed Capacity & Occupancy Monitor
+        </h2>
+        <span class="badge badge--success" id="beds-total-badge">0 occupied</span>
+      </div>
+      <div class="beds-grid" id="beds-grid">
+        <!-- Filled dynamically -->
+      </div>
+    </section>
+
+    <!-- ========== REFERRAL HOSPITALS BED CAPACITY ========== -->
+    <section class="panel panel--referral-hospitals" id="referral-hospitals-section" style="margin-bottom: 24px; padding: 18px;">
+      <div class="panel__header" style="margin-bottom: 16px;">
+        <h2 class="panel__title">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 6px;"><path d="M19 21V5a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5"/></svg>
+          Tertiary Referral & General Hospitals Bed Availability Tracker
+        </h2>
+        <span class="badge badge--info">External Referrals</span>
+      </div>
+      <div class="hospital-grid" id="hospital-grid">
+        <div class="empty-state">Loading referral hospitals data...</div>
+      </div>
+    </section>
+
+    <!-- ========== TRANSFER RECOMMENDATIONS ========== -->
+    <section class="panel panel--transfers" id="transfers-section">
+      <div class="panel__header">
+        <h2 class="panel__title">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+          Transfer Recommendations
+        </h2>
+        <span class="badge badge--purple" id="transfer-count-badge">0</span>
+      </div>
+      <div class="table-wrap" id="transfers-table-wrap">
+        <table class="table" id="transfers-table">
+          <thead>
+            <tr>
+              <th>From</th>
+              <th>To</th>
+              <th>Drug</th>
+              <th>Qty</th>
+              <th>Urgency</th>
+              <th>Transit Details</th>
+              <th>Reasoning</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="transfers-tbody">
+            <tr class="skeleton-row"><td colspan="8"><div class="skeleton-text" style="width:100%;height:18px"></div></td></tr>
+            <tr class="skeleton-row"><td colspan="8"><div class="skeleton-text" style="width:100%;height:18px"></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <!-- ========== CENTRE DETAIL MODAL ========== -->
+  <div class="modal-overlay" id="detail-overlay" onclick="DetailPanel.close()">
+    <div class="modal" id="detail-modal" onclick="event.stopPropagation()">
+      <button class="modal__close" id="detail-close" onclick="DetailPanel.close()" aria-label="Close detail panel">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <div class="modal__body" id="detail-body">
+        <!-- Filled dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== INGESTION SIMULATOR WIDGET ========== -->
+  <!-- Floating Simulator Toggle Button -->
+  <button class="simulator-toggle" id="simulator-toggle-btn" onclick="Simulator.toggle()">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 6px;"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+    Ingestion Simulator
+  </button>
+
+  <!-- Simulator Panel -->
+  <div class="simulator-panel" id="simulator-panel">
+    <div class="simulator-panel__header">
+      <h3>💬 WhatsApp Sandbox Simulator</h3>
+      <button class="simulator-panel__close" onclick="Simulator.toggle()">&times;</button>
+    </div>
+    <div class="simulator-panel__body">
+      <div class="sim-group">
+        <label for="sim-sender">Select Sender (Registered Staff)</label>
+        <select id="sim-sender">
+          <option value="whatsapp:+919111111111" selected>Savita K. (Shirgaon PHC Staff - +91 91111 11111)</option>
+          <option value="whatsapp:+919999999994">ANM Geeta (Tokawade PHC Staff - +91 99999 99994)</option>
+          <option value="whatsapp:+918888888888">Unknown / Unregistered Sender (+91 88888 88888)</option>
+        </select>
+      </div>
+
+      <div class="sim-group">
+        <label>Select Report Type</label>
+        <div class="sim-radio-group">
+          <label><input type="radio" name="sim-type" value="text" checked onchange="Simulator.onTypeChange()"> Plain Text (Hindi / English)</label>
+          <label><input type="radio" name="sim-type" value="voice-hindi-stock" onchange="Simulator.onTypeChange()"> Hindi Voice: Stock Update (पैरासिटामॉल ५००)</label>
+          <label><input type="radio" name="sim-type" value="voice-hindi-footfall" onchange="Simulator.onTypeChange()"> Hindi Voice: Footfall Report (मरीज ३०)</label>
+          <label><input type="radio" name="sim-type" value="voice-hindi-beds" onchange="Simulator.onTypeChange()"> Hindi Voice: Beds Occupied (बेड ७)</label>
+          <label><input type="radio" name="sim-type" value="voice-hindi-attendance" onchange="Simulator.onTypeChange()"> Hindi Voice: Doctor Present (डॉक्टर उपस्थित)</label>
+        </div>
+      </div>
+
+      <div class="sim-group" id="sim-text-input-group">
+        <label for="sim-body">Message Body (Hindi Text)</label>
+        <input type="text" id="sim-body" value="पैरासिटामॉल ५००" placeholder="e.g. पैरासिटामॉल ५००, फूटफॉल ४५, डॉक्टर उपस्थित">
+        <small class="sim-hint">Presets: <code>पैरासिटामॉल ५००</code> (stock), <code>फूटफॉल ४५</code> (footfall), <code>attendance doctor present</code></small>
+      </div>
+
+      <div class="sim-group" id="sim-voice-input-group" style="display:none">
+        <label>Voice File Simulation</label>
+        <div class="sim-voice-card">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="voice-mic-icon" style="color: var(--accent-cyan);"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+          <div class="sim-voice-details">
+            <strong id="sim-voice-title">hindi_voice_stock.mp3</strong>
+            <span id="sim-voice-desc" style="font-size: 0.68rem; color: var(--text-secondary);">Transcribes to: "पैरासिटामॉल ५००"</span>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn btn--accent btn--block" onclick="Simulator.submit()" id="sim-submit-btn" style="width:100%; justify-content:center; margin-top:16px;">Send WhatsApp Message</button>
+      
+      <div class="sim-result" id="sim-result" style="display:none">
+        <h4>Submission Response:</h4>
+        <pre id="sim-result-data"></pre>
+      </div>
+
+      <div class="sim-queue-section">
+        <div class="sim-queue-header">
+          <span>Offline Message Queue</span>
+          <button class="btn btn--sm btn--purple" onclick="Simulator.triggerRetry()">Process Retry Queue</button>
+        </div>
+        <div class="sim-queue-list" id="sim-queue-list">
+          <div class="empty-state">No items in ingestion queue.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== TOAST CONTAINER ========== -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

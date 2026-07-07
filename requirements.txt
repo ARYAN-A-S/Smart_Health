@@ -1,0 +1,14 @@
+fastapi
+uvicorn
+sqlalchemy
+pydantic
+scikit-learn
+pulp
+passlib[bcrypt]
+python-jose[cryptography]
+python-dotenv
+requests
+pandas
+numpy
+scipy
+twilio
