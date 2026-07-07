@@ -4,7 +4,8 @@
 
 const API = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost'
   ? 'http://127.0.0.1:8000/api'
-  : 'https://smart-health-backend.onrender.com/api'; // UPDATE THIS with your actual Render URL after deploying the backend
+  : `${window.location.origin}/api`;
+
 let centresCache = [];
 let riskCache = {};
 let refreshTimer = null;
