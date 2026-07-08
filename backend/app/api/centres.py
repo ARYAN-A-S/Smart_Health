@@ -85,17 +85,15 @@ def get_centre_risk_state(centre_id: int, db: Session = Depends(get_db)):
             reasoning=reasoning
         ))
 
-    # Integrate real Data Reliability score calculation (M4)
-    from app.services.anomaly import run_anomaly_analysis_for_centre
-    reliability_score = run_anomaly_analysis_for_centre(db, centre_id)
-    
-    # Retrieve reliability reasons from active reliability flags
+    # Retrieve reliability reasons from active reliability flags (read-only, prevents DB locks)
     reliability_reasons = []
     reliability_flags = db.query(Flag).filter(
         Flag.centre_id == centre_id,
         Flag.flag_type == "reliability",
         Flag.resolved == False
     ).all()
+    reliability_score = max(0.0, 100.0 - (len(reliability_flags) * 30.0))
+
     
     for flag in reliability_flags:
         if flag.triggering_metric == "missing_reports":

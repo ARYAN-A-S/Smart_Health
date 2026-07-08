@@ -79,7 +79,7 @@ function initMap() {
   routeGroup = L.layerGroup().addTo(map);
 }
 
-function updateMapMarkers(centres) {
+function updateMapMarkers(centres, flags) {
   if (!map) initMap();
   markersGroup.clearLayers();
 
@@ -87,9 +87,10 @@ function updateMapMarkers(centres) {
   const mainHub = centres.find(c => c.name === "Cuttack Sadar CHC") || centres[0];
 
   centres.forEach(c => {
-    const risk = riskCache[c.id] || {};
-    const relScore = risk.data_reliability_score ?? 100;
-    const adqScore = risk.resource_adequacy_score ?? 100;
+    const activeReliabilityCount = flags ? flags.filter(f => f.centre_id === c.id && f.flag_type === 'reliability').length : 0;
+    const activeAdequacyCount = flags ? flags.filter(f => f.centre_id === c.id && f.flag_type === 'adequacy').length : 0;
+    const relScore = Math.max(0, 100 - (activeReliabilityCount * 30));
+    const adqScore = Math.max(0, 100 - (activeAdequacyCount * 25));
 
     const isCHC = c.type === 'CHC';
     const markerColor = isCHC ? '#8b5cf6' : '#06b6d4'; // Purple for CHC, Cyan for PHC
@@ -179,16 +180,11 @@ async function loadAll() {
     api('/activities?limit=15')
   ]);
 
-  if (centres) {
+  if (centres && flags) {
     centresCache = centres;
-    const riskResults = await Promise.all(
-      centres.map(c => api(`/centres/${c.id}/risk-state`))
-    );
-    riskCache = {};
-    centres.forEach((c, i) => { if (riskResults[i]) riskCache[c.id] = riskResults[i]; });
     renderOverview(centres, flags, transfers);
-    renderCentresGrid(centres);
-    updateMapMarkers(centres);
+    renderCentresGrid(centres, flags);
+    updateMapMarkers(centres, flags);
   }
 
   if (flags) renderAlerts(flags);
@@ -349,8 +345,14 @@ function renderOverview(centres, flags, transfers) {
   $('ov-centres-val').textContent = centres.length;
   $('ov-centres-val').classList.remove('skeleton-text');
 
-  const reliabilities = Object.values(riskCache).map(r => r.data_reliability_score || 0);
-  const adequacies = Object.values(riskCache).map(r => r.resource_adequacy_score || 0);
+  const reliabilities = centres.map(c => {
+    const count = flags ? flags.filter(f => f.centre_id === c.id && f.flag_type === 'reliability').length : 0;
+    return Math.max(0, 100 - (count * 30));
+  });
+  const adequacies = centres.map(c => {
+    const count = flags ? flags.filter(f => f.centre_id === c.id && f.flag_type === 'adequacy').length : 0;
+    return Math.max(0, 100 - (count * 25));
+  });
 
   const avgRel = reliabilities.length ? (reliabilities.reduce((a, b) => a + b, 0) / reliabilities.length) : 0;
   const avgAdq = adequacies.length ? (adequacies.reduce((a, b) => a + b, 0) / adequacies.length) : 0;
@@ -374,15 +376,16 @@ function renderOverview(centres, flags, transfers) {
 }
 
 // ─── CENTRES GRID ─────────────────────────────
-function renderCentresGrid(centres) {
+function renderCentresGrid(centres, flags) {
   const grid = $('centres-grid');
   grid.innerHTML = '';
   $('centre-count-badge').textContent = `${centres.length} centres`;
 
   centres.forEach(c => {
-    const risk = riskCache[c.id] || {};
-    const relScore = risk.data_reliability_score ?? 0;
-    const adqScore = risk.resource_adequacy_score ?? 0;
+    const activeReliabilityCount = flags ? flags.filter(f => f.centre_id === c.id && f.flag_type === 'reliability').length : 0;
+    const activeAdequacyCount = flags ? flags.filter(f => f.centre_id === c.id && f.flag_type === 'adequacy').length : 0;
+    const relScore = Math.max(0, 100 - (activeReliabilityCount * 30));
+    const adqScore = Math.max(0, 100 - (activeAdequacyCount * 25));
 
     const card = document.createElement('div');
     card.className = 'centre-card';
