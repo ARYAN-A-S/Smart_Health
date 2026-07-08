@@ -151,3 +151,13 @@ class IntakeQueue(Base):
     retry_count = Column(Integer, nullable=False, default=0)
     error_message = Column(String, nullable=True)
     timestamp = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
+
+
+class ActivityLog(Base):
+    __tablename__ = "activity_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    action = Column(String, nullable=False)  # e.g., "approve_transfer", "refer_patient", "scan_anomalies", "submit_report"
+    details = Column(String, nullable=False)  # JSON-serialized payload of action parameters
+    timestamp = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
+

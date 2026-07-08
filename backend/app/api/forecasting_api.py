@@ -15,11 +15,18 @@ def trigger_retraining(db: Session = Depends(get_db)):
     """
     try:
         metadata = retrain_models(db)
+        from app.services.activity import log_activity
+        log_activity("retrain_models", {
+            "status": "success",
+            "message": "Model retraining completed successfully.",
+            "metadata": metadata
+        })
         return {
             "status": "success",
             "message": "Model retraining completed successfully.",
             "metadata": metadata
         }
+
     except Exception as e:
         raise HTTPException(
             status_code=500,

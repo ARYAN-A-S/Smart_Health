@@ -225,11 +225,22 @@ def create_transfer(transfer_data: TransferCreate, db: Session = Depends(get_db)
 
 @router.patch("/{transfer_id}", response_model=TransferResponse)
 def update_transfer_status(transfer_id: int, new_status: str, db: Session = Depends(get_db)):
+    from app.services.activity import log_activity
     if transfer_id >= 9000:
         for t in SHOWCASE_RECS:
             if t["id"] == transfer_id:
                 t["status"] = new_status
+                log_activity("approve_transfer", {
+                    "transfer_id": transfer_id,
+                    "from_centre_name": t["from_centre_name"],
+                    "to_centre_name": t["to_centre_name"],
+                    "drug_name": t["drug_name"],
+                    "quantity": t["quantity"],
+                    "new_status": new_status,
+                    "details": f"[SHOWCASE] Transfer ID {transfer_id} updated to {new_status}"
+                })
                 return {
+
                     "id": t["id"],
                     "from_centre_id": t["from_centre_id"],
                     "to_centre_id": t["to_centre_id"],
@@ -292,4 +303,14 @@ def update_transfer_status(transfer_id: int, new_status: str, db: Session = Depe
     transfer.status = new_status
     db.commit()
     db.refresh(transfer)
+    log_activity("approve_transfer", {
+        "transfer_id": transfer.id,
+        "from_centre_id": transfer.from_centre_id,
+        "to_centre_id": transfer.to_centre_id,
+        "drug_id": transfer.drug_id,
+        "quantity": transfer.quantity,
+        "new_status": new_status,
+        "details": f"Database Transfer ID {transfer.id} updated to {new_status}"
+    })
     return transfer
+

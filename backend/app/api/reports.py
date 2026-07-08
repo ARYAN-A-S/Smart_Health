@@ -48,6 +48,15 @@ def submit_report(request: ReportSubmitRequest, db: Session = Depends(get_db)):
         )
         db.add(log)
         db.commit()
+        from app.services.activity import log_activity
+        log_activity("submit_report", {
+            "centre_id": request.centre_id,
+            "centre_name": centre.name,
+            "report_type": "stock",
+            "source": request.source,
+            "reported_by": request.reported_by,
+            "data": request.data
+        })
         return {"status": "success", "message": "Stock log recorded", "log_id": log.id}
         
     elif report_type == "footfall":
@@ -66,6 +75,15 @@ def submit_report(request: ReportSubmitRequest, db: Session = Depends(get_db)):
         )
         db.add(log)
         db.commit()
+        from app.services.activity import log_activity
+        log_activity("submit_report", {
+            "centre_id": request.centre_id,
+            "centre_name": centre.name,
+            "report_type": "footfall",
+            "source": request.source,
+            "reported_by": request.reported_by,
+            "data": request.data
+        })
         return {"status": "success", "message": "Footfall log recorded", "log_id": log.id}
         
     elif report_type == "bed":
@@ -88,6 +106,15 @@ def submit_report(request: ReportSubmitRequest, db: Session = Depends(get_db)):
         )
         db.add(log)
         db.commit()
+        from app.services.activity import log_activity
+        log_activity("submit_report", {
+            "centre_id": request.centre_id,
+            "centre_name": centre.name,
+            "report_type": "bed",
+            "source": request.source,
+            "reported_by": request.reported_by,
+            "data": request.data
+        })
         return {"status": "success", "message": "Bed status recorded", "log_id": log.id}
         
     elif report_type == "attendance":
@@ -108,7 +135,17 @@ def submit_report(request: ReportSubmitRequest, db: Session = Depends(get_db)):
         )
         db.add(log)
         db.commit()
+        from app.services.activity import log_activity
+        log_activity("submit_report", {
+            "centre_id": request.centre_id,
+            "centre_name": centre.name,
+            "report_type": "attendance",
+            "source": request.source,
+            "reported_by": request.reported_by,
+            "data": request.data
+        })
         return {"status": "success", "message": "Staff attendance recorded", "log_id": log.id}
+
         
     else:
         raise HTTPException(

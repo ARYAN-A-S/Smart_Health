@@ -23,11 +23,17 @@ def trigger_anomaly_analysis(db: Session = Depends(get_db)):
             "data_reliability_score": reliability_score
         }
         
+    from app.services.activity import log_activity
+    log_activity("scan_anomalies", {
+        "status": "success",
+        "message": "Anomaly analysis executed successfully for all centres."
+    })
     return {
         "status": "success",
         "message": "Anomaly analysis executed successfully for all centres.",
         "results": results
     }
+
 
 @router.get("/reliability-scores")
 def get_reliability_scores(db: Session = Depends(get_db)):

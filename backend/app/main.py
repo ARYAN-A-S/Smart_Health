@@ -94,3 +94,28 @@ def read_root():
         "system": "Smart Health Platform",
         "description": "AI-driven health centre & supply chain management core services active."
     }
+
+@app.get("/api/activities")
+def get_activity_logs(limit: int = 20):
+    from app.models import SessionLocal
+    from app.models.models import ActivityLog
+    import json
+    db = SessionLocal()
+    try:
+        logs = db.query(ActivityLog).order_by(ActivityLog.timestamp.desc()).limit(limit).all()
+        results = []
+        for log in logs:
+            try:
+                details_parsed = json.loads(log.details)
+            except Exception:
+                details_parsed = log.details
+            results.append({
+                "id": log.id,
+                "action": log.action,
+                "details": details_parsed,
+                "timestamp": log.timestamp.isoformat()
+            })
+        return results
+    finally:
+        db.close()
+

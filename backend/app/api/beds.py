@@ -126,6 +126,7 @@ def get_referral_hospitals():
 
 @router.post("/hospitals/{hospital_id}/refer")
 def refer_patient(hospital_id: int, bed_type: str):
+    from app.services.activity import log_activity
     """
     Simulates referring a patient to a referral hospital, reserving a bed.
     """
@@ -139,11 +140,18 @@ def refer_patient(hospital_id: int, bed_type: str):
                 raise HTTPException(status_code=400, detail=f"No available {bed_type} beds in this hospital")
             
             bed_info["occupied"] += 1
+            log_activity("refer_patient", {
+                "hospital_id": hospital_id,
+                "hospital_name": h["name"],
+                "bed_type": bed_type,
+                "details": f"Patient referred successfully to {h['name']}. One {bed_type} bed reserved."
+            })
             return {
                 "status": "success",
                 "message": f"Patient referred successfully to {h['name']}. One {bed_type} bed reserved.",
                 "hospital": h
             }
+
             
     raise HTTPException(status_code=404, detail="Hospital not found")
 

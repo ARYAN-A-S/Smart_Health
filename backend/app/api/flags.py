@@ -17,6 +17,11 @@ def trigger_adequacy_analysis_endpoint(db: Session = Depends(get_db)):
     from app.services.flagging import run_adequacy_analysis
     try:
         run_adequacy_analysis(db)
+        from app.services.activity import log_activity
+        log_activity("analyze_adequacy", {
+            "status": "success",
+            "message": "Resource adequacy and peer underperformance analysis executed successfully for all centres."
+        })
         return {
             "status": "success",
             "message": "Resource adequacy and peer underperformance analysis executed successfully for all centres."
@@ -59,4 +64,12 @@ def resolve_flag(flag_id: int, db: Session = Depends(get_db)):
     flag.resolved = True
     db.commit()
     db.refresh(flag)
+    from app.services.activity import log_activity
+    log_activity("resolve_flag", {
+        "flag_id": flag.id,
+        "centre_id": flag.centre_id,
+        "flag_type": flag.flag_type,
+        "triggering_metric": flag.triggering_metric,
+        "details": f"Flag {flag.id} ({flag.triggering_metric}) resolved successfully"
+    })
     return flag
