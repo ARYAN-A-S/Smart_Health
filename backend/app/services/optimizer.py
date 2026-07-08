@@ -48,11 +48,17 @@ def generate_transfer_plan(db: Session) -> List[Transfer]:
             else:
                 distances[(c1.id, c2.id)] = 0.0
 
-    # Pre-calculate data reliability for all centres to prevent nested database lock latency
-    from app.services.anomaly import run_anomaly_analysis_for_centre
+    # Pre-calculate data reliability for all centres by reading active flags (read-only, prevents DB locks)
+    from app.models import Flag
     reliability_map = {}
     for centre in centres:
-        reliability_map[centre.id] = run_anomaly_analysis_for_centre(db, centre.id)
+        active_flags_count = db.query(Flag).filter(
+            Flag.centre_id == centre.id,
+            Flag.flag_type == "reliability",
+            Flag.resolved == False
+        ).count()
+        reliability_map[centre.id] = max(0.0, 100.0 - (active_flags_count * 30.0))
+
 
     # Solve optimization per drug
     for drug in drugs:
