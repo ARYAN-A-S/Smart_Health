@@ -170,12 +170,13 @@ function drawRoute(fromLat, fromLng, toLat, toLng, fromName, toName, drugName, q
 
 // ─── DATA LOADING ─────────────────────────────
 async function loadAll() {
-  const [centres, flags, transfers, bedsStatus, hospitals] = await Promise.all([
+  const [centres, flags, transfers, bedsStatus, hospitals, activities] = await Promise.all([
     api('/centres'),
     api('/flags?resolved=false'),
     api('/transfers/recommend'),
     api('/beds/current'),
-    api('/beds/hospitals')
+    api('/beds/hospitals'),
+    api('/activities?limit=15')
   ]);
 
   if (centres) {
@@ -194,7 +195,51 @@ async function loadAll() {
   if (transfers) renderTransfers(transfers);
   if (bedsStatus) renderBedsTracker(bedsStatus);
   if (hospitals) renderReferralHospitals(hospitals);
+  if (activities) renderActivities(activities);
 }
+
+function renderActivities(activities) {
+  const feed = $('activity-feed');
+  feed.innerHTML = '';
+
+  if (!activities || !activities.length) {
+    feed.innerHTML = '<div class="empty-state">No activities recorded yet.</div>';
+    return;
+  }
+
+  activities.forEach(act => {
+    const item = document.createElement('div');
+    item.className = 'activity-item';
+    
+    let colorClass = 'blue';
+    let icon = '✏️';
+    if (act.action === 'approve_transfer') { colorClass = 'purple'; icon = '🚚'; }
+    else if (act.action === 'refer_patient') { colorClass = 'green'; icon = '🏥'; }
+    else if (act.action === 'submit_report') { colorClass = 'cyan'; icon = '💬'; }
+    else if (act.action === 'scan_anomalies') { colorClass = 'red'; icon = '🔍'; }
+    else if (act.action === 'analyze_adequacy') { colorClass = 'yellow'; icon = '⚙️'; }
+    else if (act.action === 'resolve_flag') { colorClass = 'green'; icon = '✅'; }
+    else if (act.action === 'retrain_models') { colorClass = 'purple'; icon = '🤖'; }
+
+    const timeStr = new Date(act.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const details = act.details.details || act.details.message || JSON.stringify(act.details);
+
+    item.innerHTML = `
+      <div style="display: flex; align-items: start; gap: 8px; font-size: 0.78rem; padding: 8px; border-radius: 8px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-glass);">
+        <span style="font-size: 1.1rem;">${icon}</span>
+        <div style="flex: 1;">
+          <div style="display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 2px;">
+            <span style="color: var(--accent-${colorClass});">${act.action.replace(/_/g, ' ').toUpperCase()}</span>
+            <span style="font-size: 0.65rem; color: var(--text-secondary);">${timeStr}</span>
+          </div>
+          <div style="color: var(--text-secondary); font-size: 0.74rem;">${details}</div>
+        </div>
+      </div>
+    `;
+    feed.appendChild(item);
+  });
+}
+
 
 function renderBedsTracker(beds) {
   const grid = $('beds-grid');
