@@ -227,14 +227,22 @@ def retrain_models(db: Session) -> Dict[str, Any]:
     }
     joblib.dump(metadata, METADATA_PATH)
     print("All enhanced models (v2) saved to models/ directory.")
+    global _MODELS_CACHE
+    _MODELS_CACHE = None
     return metadata
 
 # ----------------------------------------------------
 # Inference & Rollout Simulation
 # ----------------------------------------------------
 
+_MODELS_CACHE = None
+
 def load_models():
-    """Helper to check and load joblib models."""
+    """Helper to check and load joblib models with in-memory caching."""
+    global _MODELS_CACHE
+    if _MODELS_CACHE is not None:
+        return _MODELS_CACHE
+
     if not (os.path.exists(FOOTFALL_MODEL_PATH) and os.path.exists(CONSUMPTION_MODEL_PATH) and os.path.exists(BED_MODEL_PATH)):
         return None, None, None, None
     try:
@@ -242,9 +250,11 @@ def load_models():
         cons = joblib.load(CONSUMPTION_MODEL_PATH)
         bed = joblib.load(BED_MODEL_PATH)
         meta = joblib.load(METADATA_PATH)
-        return ff, cons, bed, meta
+        _MODELS_CACHE = (ff, cons, bed, meta)
+        return _MODELS_CACHE
     except:
         return None, None, None, None
+
 
 def _get_recent_values(db: Session, centre_id: int, model_type: str, n: int = 7) -> List[float]:
     """Fetch the most recent n values for lag/rolling features at inference time."""
@@ -296,20 +306,20 @@ def forecast_footfall_next_7_days(centre_id: int, db: Session) -> List[float]:
         rolling_mean = float(np.mean(window))
         rolling_std = float(np.std(window)) if len(window) > 1 else 0.0
 
-        features = pd.DataFrame([{
-            "population_served": c_feats["population_served"],
-            "centre_type_code": c_feats["centre_type_code"],
-            "tier_code": c_feats["tier_code"],
-            "day_of_week": target_date.weekday(),
-            "day_of_year": target_date.timetuple().tm_yday,
-            "month": target_date.month,
-            "is_weekend": 1 if target_date.weekday() >= 5 else 0,
-            "is_monsoon": 1 if is_monsoon else 0,
-            "lag_1": lag_1,
-            "lag_7": lag_7,
-            "rolling_mean_7": rolling_mean,
-            "rolling_std_7": rolling_std,
-        }])
+        features = [[
+            c_feats["population_served"],
+            c_feats["centre_type_code"],
+            c_feats["tier_code"],
+            target_date.weekday(),
+            target_date.timetuple().tm_yday,
+            target_date.month,
+            1 if target_date.weekday() >= 5 else 0,
+            1 if is_monsoon else 0,
+            lag_1,
+            lag_7,
+            rolling_mean,
+            rolling_std,
+        ]]
         
         pred = ff_model.predict(features)[0]
         # Sundays are emergency-only, so scale down to 10%
@@ -351,19 +361,19 @@ def forecast_beds_next_7_days(centre_id: int, predicted_footfall: List[float], d
         rolling_mean = float(np.mean(window))
         rolling_std = float(np.std(window)) if len(window) > 1 else 0.0
 
-        features = pd.DataFrame([{
-            "centre_type_code": c_feats["centre_type_code"],
-            "population_served": c_feats["population_served"],
-            "total_beds": total_beds,
-            "footfall": predicted_footfall[i],
-            "day_of_week": target_date.weekday(),
-            "month": target_date.month,
-            "is_weekend": 1 if target_date.weekday() >= 5 else 0,
-            "lag_1": lag_1,
-            "lag_7": lag_7,
-            "rolling_mean_7": rolling_mean,
-            "rolling_std_7": rolling_std,
-        }])
+        features = [[
+            c_feats["centre_type_code"],
+            c_feats["population_served"],
+            total_beds,
+            predicted_footfall[i],
+            target_date.weekday(),
+            target_date.month,
+            1 if target_date.weekday() >= 5 else 0,
+            lag_1,
+            lag_7,
+            rolling_mean,
+            rolling_std,
+        ]]
         
         pred = bed_model.predict(features)[0]
         pred = float(round(min(float(total_beds), max(0.0, pred)), 1))
@@ -445,21 +455,21 @@ def forecast_days_to_stockout(
             rolling_mean = float(np.mean(window))
             rolling_std = float(np.std(window)) if len(window) > 1 else 0.0
             
-            features = pd.DataFrame([{
-                "population_served": c_feats["population_served"],
-                "centre_type_code": c_feats["centre_type_code"],
-                "tier_code": c_feats["tier_code"],
-                "drug_id": drug_id,
-                "day_of_week": target_date.weekday(),
-                "month": target_date.month,
-                "is_weekend": 1 if target_date.weekday() >= 5 else 0,
-                "is_monsoon": 1 if is_monsoon else 0,
-                "footfall": footfall_val,
-                "lag_1": lag_1,
-                "lag_7": lag_7,
-                "rolling_mean_7": rolling_mean,
-                "rolling_std_7": rolling_std,
-            }])
+            features = [[
+                c_feats["population_served"],
+                c_feats["centre_type_code"],
+                c_feats["tier_code"],
+                drug_id,
+                target_date.weekday(),
+                target_date.month,
+                1 if target_date.weekday() >= 5 else 0,
+                1 if is_monsoon else 0,
+                footfall_val,
+                lag_1,
+                lag_7,
+                rolling_mean,
+                rolling_std,
+            ]]
             
             pred_cons = cons_model.predict(features)[0]
             # Add prediction offset to capture uncertainty:
