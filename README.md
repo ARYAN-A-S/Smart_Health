@@ -1,6 +1,17 @@
+---
+title: Smart Health
+emoji: 🏥
+colorFrom: blue
+colorTo: purple
+sdk: docker
+pinned: false
+app_port: 7860
+---
+
 # Smart Health — AI-Driven District Health Centre & Supply Chain Management
 
 A real-time monitoring and resource management platform for district-level primary health centres (PHCs) and community health centres (CHCs).
+
 
 
 ---
