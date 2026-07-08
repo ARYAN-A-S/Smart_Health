@@ -86,6 +86,28 @@ def startup_event():
         finally:
             db.close()
 
+    # 3. Auto-populate Flags / Active Alerts on startup
+    print("Running initial anomaly and resource adequacy analysis on startup...")
+    db = SessionLocal()
+    try:
+        from app.services.anomaly import run_anomaly_analysis_for_centre
+        from app.services.flagging import run_adequacy_analysis
+        from app.models.models import Centre
+        
+        # Run anomaly analysis for all centres
+        centres = db.query(Centre).all()
+        for centre in centres:
+            run_anomaly_analysis_for_centre(db, centre.id)
+            
+        # Run adequacy analysis
+        run_adequacy_analysis(db)
+        print("Initial flagging analysis completed successfully. Active alerts populated.")
+    except Exception as e:
+        print(f"Failed to run initial flagging analysis: {e}")
+    finally:
+        db.close()
+
+
 
 @app.get("/")
 def read_root():
